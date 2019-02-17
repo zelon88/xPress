@@ -1,9 +1,9 @@
 # --------------------------------------------------
 # xPress.py
-# v0.8.8 - 2/17/2019
+# v0.8.9 - 2/17/2019
 #
 # Justin Grimes (@zelon88)
-#   https://github.com/zelon88
+#   https://github.com/zelon88/xPress
 #   https://www.HonestRepair.net
 #
 # Made on Windows 7 with Python 2.7.12
@@ -186,18 +186,19 @@ def buildDictionary(outputFile, inputFile, dictFile, dictionaryPreffix, dictiona
                 # Save the compressed data to the output file.
                 with open(outputFile, appendWrite) as openFile2:
                   openFile2.write(data)
+                  openFile2.close()
               else:
+                # Decide whether we need to create a new output file or append to an existing one.
+                if os.path.isfile(outputFile):
+                  appendWrite = "ab"
+                else:
+                  appendWrite = "wb"
                 # Save uncompressed data to the output file.
                 with open(outputFile, appendWrite) as openFile2:
-                  # Decide whether we need to create a new output file or append to an existing one.
-                  if os.path.isfile(outputFile):
-                    appendWrite = "ab"
-                  else:
-                    appendWrite = "wb"
                   openFile2.write(data)
+                  openFile2.close()
               counter0 += 1
           openFile.close()
-          openFile2.close()
           # Decide whether we need to create a new output file or append to an existing one.
           if os.path.isfile(dictFile):
             appendWrite = "ab"
@@ -281,8 +282,24 @@ def extractDictionary(inputFile, outputFile, dictFile, dictionaryPreffix, dictio
 # EXTRACT
 # A function to loop through the dictionary and compressed data and look for matches.
 def dictionaryLoop(compressedData, dictionary):
-  
-  return decompressedData, matchCount, result
+  result = 'ERROR'
+  matchCount = 0
+  if not isinstance(dictionary, dict):
+    print ('ERROR!!! xPress285, The supplied dictionary is not readable on '+str(time)+'!')
+  else:
+    result = 1
+    print ('OP-Act: Beginning decompression loop.')
+    # Loop through each key in the dictionary, count and replace matches.
+    for key, value in dictionary.iteritems():
+      print ('OP-Act: Iterating through dictionary with key '+str(key)+' and value '+str(value))
+      matchCount = matchCount + compressedData.count(key) + value.count(key)
+      print(matchCount)
+      # Decompress any instances of the key in the dictionary.
+      dictionary = dictionary.replace(key, value)
+
+      dictionary.
+      compressedData = compressedData.replace(key, value)
+  return compressedData, dictionary, matchCount, result
 # --------------------------------------------------
 
 # --------------------------------------------------
@@ -290,12 +307,26 @@ def dictionaryLoop(compressedData, dictionary):
 # A function to decompress an input file.
 def decompressFile(outputFile, compressedData, dictionary):
   result = 'ERROR'
+  counter = 1
+  decompressedData = ''
   if not os.path.isfile(outputFile) or compressedData == 'ERROR' or dictionary == 'ERROR':
     print ('ERROR!!! xPress294, Could not decompress outputFile '+str(outputFile)+' on '+str(time)+'!')
   else:
+    result = 1
     print ('OP-Act: Initiating decompressor on inputFile '+str(inputFile))
-
-
+    # Loop through the file and look for dictionary matches.
+    while counter != 0 and result != 'ERROR' and compressedData != 'ERROR':
+      compressedData, dictionary, counter, result = dictionaryLoop(compressedData, dictionary)
+      if result == 'ERROR' or compressedData == 'ERROR':
+        print ('ERROR!!! xPress311, The operation failed during decompression of outputFile '+str(outputFile)+' on '+str(time)+'!')
+    with open(outputFile, 'wb') as outputData:
+      outputData.write(compressedData)
+      outputData.close()
+    if not os.path.isfile(outputFile):
+      result = 'ERROR'
+      print ('ERROR!!! xPress315, The operation failed to create an outputFile '+str(outputFile)+' on '+str(time)+'!')
+    else:
+      result = 1
   return result 
 # --------------------------------------------------
 
@@ -316,7 +347,7 @@ if sys.argv[1] == 'e':
   tempFile, tempPath, inputFile, inputPath, outputFile, outputPath, dictFile, dictPath = parseArgs(sys.argv[1:])  
   dictionary, compressedData, dictResult = extractDictionary(inputFile, outputFile, dictFile, dictionaryPreffix, dictionarySuffix)
   if dictResult != 'ERROR':
-    print ('OK')
+    decompressionResult = decompressFile(outputFile, compressedData, dictionary)
 # --------------------------------------------------
 
 # --------------------------------------------------

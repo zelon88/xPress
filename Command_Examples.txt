@@ -1,0 +1,7 @@
+xPress Command Examples
+
+Compressing a file
+xPress.py c c:\Users\Justin\Desktop\test2.dll c:\Users\Justin\Desktop\output.xpr
+
+Decompressing a file
+xPress.py e c:\Users\Justin\Desktop\test.xpr c:\Users\Justin\Desktop\output.dll
