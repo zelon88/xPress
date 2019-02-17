@@ -1,6 +1,6 @@
 # --------------------------------------------------
 # xPress.py
-# v0.8.6 - 2/16/2019
+# v0.8.7 - 2/17/2019
 #
 # Justin Grimes (@zelon88)
 #   https://github.com/zelon88
@@ -90,12 +90,13 @@ def parseArgs(argv):
 # --------------------------------------------------
 
 # --------------------------------------------------
-# COMPRESS & EXTRACT
+# COMPRESS
 # Define the chunkSize based on fileSize and available memory.
 # We need to store 2 copies of the offset buffer and the rest of this application.
 # By dynamically setting how much of a file to load into memory at a time, xPress should be hardware agnostic.
 # Severely limited machines with memory levels measured in hundreds of megabytes may see less compression performance than machines with more memory.
 def defineChunkSize(inputFile):
+  chunkSize = 0
   # Get the filesize of the input file.
   print ('OP-Act: Defining chunkSize with inputFile of '+inputFile)
   fileSize = int(os.path.getsize(inputFile))
@@ -113,13 +114,13 @@ def defineChunkSize(inputFile):
 # --------------------------------------------------
 
 # --------------------------------------------------
-# COMPRESS & EXTRACT
+# COMPRESS
 # Define what the file offsets and number of chunks based on fileSize and chunkSize.
 # If a file is too big it is divided into small chunks.
 # The offset is different from the chunkSize in that it is evenly divisible by the filesize.
 # To put it differently, the chunkSize limits global memory usage and the offset allocates an exact quantity of memory for each operation.
 def defineOffset(inputFile, chunkSize):
-  result = 'ERROR'
+  offset = chunkCount = result = 'ERROR'
   # Verify that the inputFile exists.
   if os.path.isfile(inputFile):
     # Get the filesize of the input file.
@@ -136,7 +137,7 @@ def defineOffset(inputFile, chunkSize):
     result = 1
     print('OP-Act: Offset is '+str(offset)+', chunkCount is '+str(chunkCount))
   else:
-    offset = result = 'ERROR'
+    offset = chunkCount = result = 'ERROR'
     chunkCount = 0
   return offset, chunkCount, result
 # --------------------------------------------------
@@ -145,12 +146,10 @@ def defineOffset(inputFile, chunkSize):
 # COMPRESS
 # A function to iterate through the temp file and build a dictionary for the file.
 def buildDictionary(outputFile, inputFile, dictFile, dictionaryPreffix, dictionarySuffix):
-  result = 'ERROR'
+  dictionary = result = data = 'ERROR'
   # Verify that no output file or dict file exists already.
   if os.path.isfile(outputFile) or os.path.isfile(dictFile):
     print ('ERROR!!! xPress123, The output file or temp files already exist for outputFile '+outputFile+'!')
-    dictionary = result = 'ERROR'
-    data = ''
   else:
     # Verify that in input file exists.
     if os.path.isfile(inputFile):
@@ -208,15 +207,12 @@ def buildDictionary(outputFile, inputFile, dictFile, dictionaryPreffix, dictiona
             openFile3.write(str(dictionary))
             openFile3.close()
       else:
-        dictionary = result =  'ERROR'
-        data = ''
+        dictionary = result = data = 'ERROR'
     else: 
-      dictionary = result =  'ERROR'
-      data = ''
+      dictionary = result = data = 'ERROR'
   # Verify that a dictionary file was created and no errors were encountered.
   if not os.path.isfile(dictFile) or dictionary == 'ERROR' or result == 'ERROR':
-    dictionary = result = 'ERROR'
-    data = ''
+    dictionary = result = data ='ERROR'
     print ('ERROR!!! xPress173, The operation failed to generate a dictionary for inputFile '+inputFile+'!')
   return dictionary, data, result
 # --------------------------------------------------
@@ -234,8 +230,8 @@ def compressFile(outputFile, compressedData, dictionary, dictionaryPreffix, dict
   result = 1
   # Verify that an output file was created.
   if not os.path.isfile(outputFile):
-    print('ERROR!!! xPress232, The operation failed to write the dictionary to outputFile'+outputFile)
     result = 'ERROR'
+    print('ERROR!!! xPress232, The operation failed to write the dictionary to outputFile'+outputFile)
   return result
 # --------------------------------------------------
 
@@ -243,40 +239,51 @@ def compressFile(outputFile, compressedData, dictionary, dictionaryPreffix, dict
 # EXTRACT
 # A function to extract compressed data and reconstruct the original file.
 def extractDictionary(inputFile, outputFile, dictFile, dictionaryPreffix, dictionarySuffix):
-  result = 'ERROR'
+  result = dictionary = data = 'ERROR'
   # Perform sanity checks before attempting anything.
   if os.path.isfile(outputFile) or os.path.isfile(dictFile):
     print ('ERROR!!! xPress240, The output file or temp files already exist for outputFile '+outputFile+'!')
-    dictionary = result = 'ERROR'
-    data = ''
   else:
     if os.path.isfile(inputFile):
       print('OP-Act: Extracting dictionary from inputFile '+inputFile)
       # Open the input file and put its contents into memory.
       with open(inputFile, 'rb') as inputData:
-        data = inputData.read()
+        inData = inputData.read()
         # Extract the dictionary data from the input data.
-        dictionary = data[data.find(dictionaryPreffix)+len(dictionaryPreffix):data.find(dictionarySuffix)]
-        data = data.replace(dictionary, '').replace(dictionaryPreffix, '').replace(dictionarySuffix, '')
-        dictionary = dictionary.replace(dictionaryPreffix, '').replace(dictionarySuffix, '')
-        # Write the extracted dictionary data to a temporary dictionary file.
-        with open(dictFile, 'wb') as dictData:
-          dictData.write(dictionary)
-          # Create an output file, separate compressed data from dictionary data, and put just the compressed data into it.
-          with open(outputFile, 'wb') as outputData:
-            outputRaw = data.replace(dictionaryPreffix+dictionary+dictionarySuffix, '')
-            outputData.write(outputRaw)
-            outputData.close()
-          dictData.close()
+        dictionaryData = inData[inData.find(dictionaryPreffix)+len(dictionaryPreffix):inData.find(dictionarySuffix)]
+        inData = inData.replace(dictionaryData, '').replace(dictionaryPreffix, '').replace(dictionarySuffix, '')
+        dictionaryData = dictionaryData.replace(dictionaryPreffix, '').replace(dictionarySuffix, '')
         inputData.close()
+      # Write the extracted dictionary data to a temporary dictionary file.
+      with open(dictFile, 'wb') as dictData:
+        dictData.write(dictionaryData)
+        dictData.close()
+        # Create an output file, separate compressed data from dictionary data, and put just the compressed data into it.
+      with open(outputFile, 'wb') as outputData:
+        outputRaw = inData.replace(dictionaryPreffix+dictionaryData+dictionarySuffix, '')
+        outputData.write(outputRaw)
+        outputData.close()
+      dictFileOpen = open(dictFile, "rb")
+      dictionary = pickle.load(dictFileOpen)
+      dictFileOpen.close()
+      data = outputRaw
       result = 1
     else:
-      result = 'ERROR'
+      result = dictionary = data = 'ERROR'
       print(('ERROR!!! xPress254, The operation failed to extract a dictionary from inputFile '+inputFile+'!'))
   if not os.path.isfile(dictFile):
+    result = dictionary = data = 'ERROR'
     print('ERROR!!! xPress232, The operation failed to write the dictionary to outputFile'+outputFile)
-    result = 'ERROR'
-  return result
+  return dictionary, data, result
+# --------------------------------------------------
+
+# --------------------------------------------------
+# EXTRACT
+# A function to decompress an input file.
+def decompressFile(outputFile, compressedData, dictionary):
+
+
+  return result 
 # --------------------------------------------------
 
 # --------------------------------------------------
@@ -294,7 +301,7 @@ if sys.argv[1] == 'c':
 # Code to extract a specified file.
 if sys.argv[1] == 'e':
   tempFile, tempPath, inputFile, inputPath, outputFile, outputPath, dictFile, dictPath = parseArgs(sys.argv[1:])  
-  dictResult = extractDictionary(inputFile, outputFile, dictFile, dictionaryPreffix, dictionarySuffix)
+  dictionary, compressedData, dictResult = extractDictionary(inputFile, outputFile, dictFile, dictionaryPreffix, dictionarySuffix)
   if dictResult != 'ERROR':
     print('OK')
 # --------------------------------------------------
