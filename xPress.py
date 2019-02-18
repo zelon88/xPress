@@ -35,6 +35,7 @@ outputPath = ''
 chunkSize = 0
 offset = 0
 chunkCount = 0
+dictLength = 12
 dictionaryPreffix = '@!@!@!DICTSTART@!@!@!'
 dictionarySuffix = '@!@!@!DICTEND@!@!@!'
 print ("\n"+'OP-Act: Starting xPress Compress on '+str(time)+'!'+"\n")
@@ -145,7 +146,7 @@ def defineOffset(inputFile, chunkSize):
 # --------------------------------------------------
 # COMPRESS
 # A function to iterate through the temp file and build a dictionary for the file.
-def buildDictionary(outputFile, inputFile, dictFile, dictionaryPreffix, dictionarySuffix):
+def buildDictionary(outputFile, inputFile, dictFile, dictLength, dictionaryPreffix, dictionarySuffix):
   dictionary = result = data = 'ERROR'
   # Verify that no output file or dict file exists already.
   if os.path.isfile(outputFile) or os.path.isfile(dictFile):
@@ -171,8 +172,9 @@ def buildDictionary(outputFile, inputFile, dictFile, dictionaryPreffix, dictiona
             # Fill up the offset buffer.
             data = openFile.read(tempOffset)
             # Select some data and attempt to compress it.
-            for i in xrange(0, len(data), 20):
-              chars = data[i:i+20]
+            for i in xrange(0, len(data), dictLength):
+              print ('OP-Act: Initiating a compression loop.'+str(i))
+              chars = data[i:i+dictLength]
               if data.find(chars) >= 0:
                 dictIndexNumber += 1
                 dictIndex = '#'+str(dictIndexNumber)+'$'
@@ -288,17 +290,13 @@ def dictionaryLoop(compressedData, dictionary):
     print ('ERROR!!! xPress285, The supplied dictionary is not readable on '+str(time)+'!')
   else:
     result = 1
-    print ('OP-Act: Beginning decompression loop.')
+    #print ('OP-Act: Beginning data decompression loop.')
     # Loop through each key in the dictionary, count and replace matches.
     for key, value in dictionary.iteritems():
-      print ('OP-Act: Iterating through dictionary with key '+str(key)+' and value '+str(value))
-      matchCount = matchCount + compressedData.count(key) + value.count(key)
-      print(matchCount)
-      # Decompress any instances of the key in the dictionary.
-      dictionary = dictionary.replace(key, value)
-
-      dictionary.
+      #print ('OP-Act: Iterating through dictionary with key '+str(key)+' and value '+str(value))
+      matchCount = matchCount + compressedData.count(key)
       compressedData = compressedData.replace(key, value)
+      print matchCount
   return compressedData, dictionary, matchCount, result
 # --------------------------------------------------
 
@@ -315,7 +313,7 @@ def decompressFile(outputFile, compressedData, dictionary):
     result = 1
     print ('OP-Act: Initiating decompressor on inputFile '+str(inputFile))
     # Loop through the file and look for dictionary matches.
-    while counter != 0 and result != 'ERROR' and compressedData != 'ERROR':
+    while counter != 0:
       compressedData, dictionary, counter, result = dictionaryLoop(compressedData, dictionary)
       if result == 'ERROR' or compressedData == 'ERROR':
         print ('ERROR!!! xPress311, The operation failed during decompression of outputFile '+str(outputFile)+' on '+str(time)+'!')
@@ -335,7 +333,7 @@ def decompressFile(outputFile, compressedData, dictionary):
 # Code to compress a specified file.
 if sys.argv[1] == 'c':
   tempFile, tempPath, inputFile, inputPath, outputFile, outputPath, dictFile, dictPath = parseArgs(sys.argv[1:])  
-  dictionary, compressedData, dictResult = buildDictionary(outputFile, inputFile, dictFile, dictionaryPreffix, dictionarySuffix)
+  dictionary, compressedData, dictResult = buildDictionary(outputFile, inputFile, dictFile, dictLength, dictionaryPreffix, dictionarySuffix)
   if dictResult != 'ERROR':
     compressionResult = compressFile(outputFile, compressedData, dictionary, dictionaryPreffix, dictionarySuffix)
 # --------------------------------------------------
