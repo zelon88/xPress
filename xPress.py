@@ -1,6 +1,6 @@
 # --------------------------------------------------
 # xPress.py
-# v0.8.9 - 2/17/2019
+# v0.9 - 2/20/2019
 #
 # Justin Grimes (@zelon88)
 #   https://github.com/zelon88/xPress
@@ -174,39 +174,24 @@ def buildDictionary(outputFile, inputFile, dictFile, dictLength, dictionaryPreff
             # Select some data and attempt to compress it.
             for i in xrange(0, len(data), dictLength):
               print ('OP-Act: Initiating a compression loop.'+str(i))
-              chars = data[i:i+dictLength]
+              chars = data[i:(i+dictLength)]
               if data.find(chars) >= 0:
                 dictIndexNumber += 1
                 dictIndex = '#'+str(dictIndexNumber)+'$'
                 data = data.replace(chars, dictIndex)
                 dictionary.update({dictIndex : chars})
-                # Decide whether we need to create a new output file or append to an existing one.
-                if os.path.isfile(outputFile):
-                  appendWrite = "ab"
-                else:
-                  appendWrite = "wb"
                 # Save the compressed data to the output file.
-                with open(outputFile, appendWrite) as openFile2:
+                with open(outputFile, "wb") as openFile2:
                   openFile2.write(data)
                   openFile2.close()
               else:
-                # Decide whether we need to create a new output file or append to an existing one.
-                if os.path.isfile(outputFile):
-                  appendWrite = "ab"
-                else:
-                  appendWrite = "wb"
                 # Save uncompressed data to the output file.
-                with open(outputFile, appendWrite) as openFile2:
+                with open(outputFile, "wb") as openFile2:
                   openFile2.write(data)
                   openFile2.close()
               counter0 += 1
           openFile.close()
-          # Decide whether we need to create a new output file or append to an existing one.
-          if os.path.isfile(dictFile):
-            appendWrite = "ab"
-          else:
-            appendWrite = "wb"
-          with open(dictFile, appendWrite) as openFile3:
+          with open(dictFile, "wb") as openFile3:
             openFile3.write(str(dictionary))
             openFile3.close()
       else:
