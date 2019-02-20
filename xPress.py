@@ -1,6 +1,6 @@
 # --------------------------------------------------
 # xPress.py
-# v0.9 - 2/20/2019
+# v0.9.1 - 2/20/2019
 #
 # Justin Grimes (@zelon88)
 #   https://github.com/zelon88/xPress
@@ -165,7 +165,7 @@ def buildDictionary(outputFile, inputFile, dictFile, dictLength, dictionaryPreff
       tempOffset, tempChunkCount, dOffResult = defineOffset(inputFile, tempChunkSize)
       if dOffResult != 'ERROR' and tempOffset != 'ERROR' and tempChunkCount > 0:
         # Open the input file.
-        with open(inputFile, "r") as openFile:
+        with open(inputFile, "rb") as openFile:
           while counter0 < tempChunkCount:
             # Set the current offset.
             filePosition = openFile.tell()
