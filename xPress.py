@@ -357,6 +357,7 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                 with open(outputFile, "wb") as openFile2:
                   openFile2.write(data)
                   openFile2.close()
+                break
               counter0 += 1
           openFile.close()
           with open(dictFile, "wb") as openFile3:
