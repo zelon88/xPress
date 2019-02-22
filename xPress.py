@@ -59,9 +59,9 @@ dictFile = tempPath = tempFile = outputPath = outputFile = ''
 currentPath = os.path.dirname(__file__)
 logFile = os.path.join(currentPath, 'xPress.log')
 chunkSize = offset = chunkCount = errorCounter = 0
-dictLength = 2500
-dictionaryPrefix = '@!@!@!DICTST@!@!@!'
-dictionarySufix = '@!@!@!DICTEND@!@!@!'
+dictLength = 12
+dictionaryPrefix = '!@!@!DST@!@!@'
+dictionarySufix = '!@!@!DND@!@!@'
 logPrefix = 'OP-Act: '
 # --------------------------------------------------
 
@@ -72,7 +72,7 @@ logPrefix = 'OP-Act: '
 # Note this uses sys.exit(), which not only kills this script but the entire interpreter.
 def printGracefully(logPrefix, message):
   print (logPrefix+message+'.')
-  return (1)
+  return 1
 # --------------------------------------------------
 
 # --------------------------------------------------
@@ -323,11 +323,12 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
       if dOffResult != 'ERROR' and tempOffset != 'ERROR' and tempChunkCount > 0:
         # Open the input file.
         with open(inputFile, "rb") as openFile:
-          while counter0 < tempChunkCount:
+          while counter0 <= tempChunkCount:
             # Set the current offset.
             filePosition = openFile.tell()
             # Fill up the offset buffer.
             data = openFile.read(tempOffset)
+            lastDataLen = len(data)
             # Select some data and attempt to compress it.
             for i in xrange(0, len(data), dictLength):
               message = 'Initiating a compression loop. Byte '+str(i)+' of '+str(len(data))+' in chunk '+str(chunkCount)
@@ -336,9 +337,10 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
               if verbosity > 1:
                 printGracefully(logPrefix, message)
               chars = data[i:(i+dictLength)]
-              if data.find(chars) >= 0:
+              if data.find(chars) >= 0 and lastDataLen >= len(data) and (lastDataLen - i >= dictLength):
                 dictIndexNumber += 1
                 dictIndex = '#'+str(dictIndexNumber)+'$'
+                lastDataLen = len(data)
                 data = data.replace(chars, dictIndex)
                 dictionary.update({dictIndex : chars})
                 # Save the compressed data to the output file.
@@ -347,6 +349,11 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                   openFile2.close()
               else:
                 # Save uncompressed data to the output file.
+                message = 'Skipping bytes '+str(i)+' of '+str(len(data))+' in chunk '+str(chunkCount)
+                if logging > 1:
+                  writeLog(logFile, message, time, 0, 0)
+                if verbosity > 1:
+                  printGracefully(logPrefix, message)
                 with open(outputFile, "wb") as openFile2:
                   openFile2.write(data)
                   openFile2.close()
@@ -424,7 +431,7 @@ def extractDictionary(logging, verbosity, inputFile, outputFile, dictFile, dicti
       if verbosity > 1:
         printGracefully(logPrefix, message)
       # Open the input file and put its contents into memory.
-      with open(inputFile, 'rb') as inputData:
+      with open(inputFile, "rb") as inputData:
         inData = inputData.read()
         # Extract the dictionary data from the input data.
         dictionaryData = inData[inData.find(dictionaryPrefix)+len(dictionaryPrefix):inData.find(dictionarySufix)]
@@ -432,11 +439,11 @@ def extractDictionary(logging, verbosity, inputFile, outputFile, dictFile, dicti
         dictionaryData = dictionaryData.replace(dictionaryPrefix, '').replace(dictionarySufix, '')
         inputData.close()
       # Write the extracted dictionary data to a temporary dictionary file.
-      with open(dictFile, 'wb') as dictData:
+      with open(dictFile, "wb") as dictData:
         dictData.write(dictionaryData)
         dictData.close()
         # Create an output file, separate compressed data from dictionary data, and put just the compressed data into it.
-      with open(outputFile, 'wb') as outputData:
+      with open(outputFile, "wb") as outputData:
         outputRaw = inData.replace(dictionaryPrefix+dictionaryData+dictionarySufix, '')
         outputData.write(outputRaw)
         outputData.close()
@@ -537,7 +544,7 @@ def decompressFile(logging, verbosity, outputFile, compressedData, dictionary, e
           dieGracefully(message, 500, errorCounter)
         else:
           sys.exit()
-    with open(outputFile, 'wb') as outputData:
+    with open(outputFile, "wb") as outputData:
       outputData.write(compressedData)
       outputData.close()
     if not os.path.isfile(outputFile):
