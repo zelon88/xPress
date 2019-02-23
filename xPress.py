@@ -1,6 +1,6 @@
 # --------------------------------------------------
 # xPress.py
-# v0.9.3 - 2/20/2019
+# v0.9.4 - 2/21/2019
 
 # Justin Grimes (@zelon88)
 #   https://github.com/zelon88/xPress
@@ -13,7 +13,7 @@
 # document. It has an adjustable dictionary value length and
 # can decompress files without special extractor preparations.
 
-# Code comments are prefaced with COMPRESS or EXTRACT to denote
+# Code blocks are prefaced with COMPRESS or EXTRACT to denote
 # which function they support, for easier code surfing.
 # --------------------------------------------------
 
@@ -67,9 +67,7 @@ logPrefix = 'OP-Act: '
 
 # --------------------------------------------------
 # COMPRESS & EXTRACT
-# A function to kill the program gracefully during unrecoverable error.
-# The errorMessage will be displayed to the user, unless the s switch is set.
-# Note this uses sys.exit(), which not only kills this script but the entire interpreter.
+# A function to print output to the console in a consistent manner.
 def printGracefully(logPrefix, message):
   print (logPrefix+message+'.')
   return 1
@@ -84,6 +82,14 @@ def dieGracefully(errorMessage, errorNumber, errorCounter):
   print ('ERROR-'+str(errorCounter)+'!!! xPress'+str(errorNumber)+': '+str(errorMessage)+' on '+str(time)+'!')
   sys.exit()
   return (1)
+# --------------------------------------------------
+
+# --------------------------------------------------
+# COMPRESS
+# A function to get the filesize of an inputFile for hueristics.
+def getSize(inputFile):
+  st = os.stat(inputFile)
+  return st.st_size
 # --------------------------------------------------
 
 # --------------------------------------------------
@@ -111,7 +117,7 @@ def writeLog(logFile, logEntry, time, errorNumber, errorCounter):
 # --------------------------------------------------
 # COMPRESS & EXTRACT
 # Process user supplied arguments/parameters/switches.
-def parseArgs(logging, verbosity, argv):
+def parseArgs(logging, verbosity, argv, errorCounter):
   # Check if any arguments were passed.
   try:
     opts, args = getopt.getopt(argv,"h")
@@ -384,7 +390,7 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
 # --------------------------------------------------
 # COMPRESS
 # A function to iterate through the temp file and compress its actual data using the dictionary.
-def compressFile(logging, verbosity, outputFile, compressedData, dictionary, dictionaryPrefix, dictionarySufix):
+def compressFile(logging, verbosity, outputFile, compressedData, dictionary, dictionaryPrefix, dictionarySufix, errorCounter):
   message = 'Writing dictionary to outputFile '+str(outputFile)
   if logging > 1:
     writeLog(logFile, message, time, 0, 0)
@@ -579,18 +585,19 @@ def printWelcome(logging, verbosity):
 # COMPRESS
 # Code to compress a specified file.
 if sys.argv[1] == 'c':
-  logging, verbosity, tempFile, tempPath, inputFile, inputPath, outputFile, outputPath, dictFile, dictPath = parseArgs(logging, verbosity, sys.argv[1:])  
+  logging, verbosity, tempFile, tempPath, inputFile, inputPath, outputFile, outputPath, dictFile, dictPath = parseArgs(logging, verbosity, sys.argv[1:], errorCounter)  
   printWelcome(logging, verbosity)
+  dictLength = int(getSize(inputFile)) / 20
   dictionary, compressedData, dictResult = buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLength, dictionaryPrefix, dictionarySufix, errorCounter)
   if dictResult != 'ERROR':
-    compressionResult = compressFile(logging, verbosity, outputFile, compressedData, dictionary, dictionaryPrefix, dictionarySufix)
+    compressionResult = compressFile(logging, verbosity, outputFile, compressedData, dictionary, dictionaryPrefix, dictionarySufix, errorCounter)
 # --------------------------------------------------
 
 # --------------------------------------------------
 # EXTRACT
 # Code to extract a specified file.
 if sys.argv[1] == 'e':
-  logging, verbosity, tempFile, tempPath, inputFile, inputPath, outputFile, outputPath, dictFile, dictPath = parseArgs(logging, verbosity, sys.argv[1:])  
+  logging, verbosity, tempFile, tempPath, inputFile, inputPath, outputFile, outputPath, dictFile, dictPath = parseArgs(logging, verbosity, sys.argv[1:], errorCounter)  
   printWelcome(logging, verbosity)
   dictionary, compressedData, dictResult = extractDictionary(logging, verbosity, inputFile, outputFile, dictFile, dictionaryPrefix, dictionarySufix, errorCounter)
   if dictResult != 'ERROR':
