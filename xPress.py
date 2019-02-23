@@ -231,7 +231,7 @@ def parseArgs(logging, verbosity, argv, errorCounter):
 def defineChunkSize(logging, verbosity, inputFile):
   chunkSize = 0
   # Get the filesize of the input file.
-  message = 'Defining chunkSize with inputFile of '+str(inputFile)
+  message = 'Defining chunkSize with inputFile '+str(inputFile)
   if logging > 1:
     writeLog(logFile, message, time, 0, 0)
   if verbosity > 1:
