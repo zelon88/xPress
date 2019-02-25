@@ -1,6 +1,6 @@
 # --------------------------------------------------
 # xPress.py
-# v0.9.4 - 2/21/2019
+# v0.9.5 - 2/21/2019
 
 # Justin Grimes (@zelon88)
 #   https://github.com/zelon88/xPress
@@ -320,10 +320,8 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
       if verbosity > 1:
         printGracefully(logPrefix, message)
       dictionary = {}
-      dictCount = 0
-      dictIndexNumber = 0
+      dictIndexNumber = counter0 = dictCount = lastDictLen = lastChunk = 0
       dictIndex = '#',str(dictIndexNumber),'$'
-      counter0 = 0
       tempChunkSize = defineChunkSize(logging, verbosity, inputFile)
       tempOffset, tempChunkCount, dOffResult = defineOffset(logging, verbosity, inputFile, tempChunkSize)
       if dOffResult != 'ERROR' and tempOffset != 'ERROR' and tempChunkCount > 0:
@@ -337,25 +335,30 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
             lastDataLen = len(data)
             # Select some data and attempt to compress it.
             for i in xrange(0, len(data), dictLength):
-              message = 'Initiating a compression loop. Byte '+str(i)+' of '+str(len(data))+' in chunk '+str(chunkCount)
+              message = 'Initiating a compression loop. Byte '+str(i)+' of '+str(len(data))+' in chunk '+str(tempChunkCount)
               if logging > 1:
                 writeLog(logFile, message, time, 0, 0)
               if verbosity > 1:
                 printGracefully(logPrefix, message)
               chars = data[i:(i+dictLength)]
-              if data.find(chars) >= 0 and lastDataLen >= len(data) and (lastDataLen - i >= dictLength):
+              nextIndexNumber = dictIndexNumber + 1
+              nextIndex = '#'+str(nextIndexNumber)+'$'
+              # Check to make sure the data is shrinking rather than growing.
+              if (len(chars) > len(nextIndex) and (len(dictionary) - lastDictLen) <= (lastDataLen - len(data)) and lastDataLen >= len(data) and (lastDataLen - i > dictLength)) or lastChunk != counter0:
                 dictIndexNumber += 1
                 dictIndex = '#'+str(dictIndexNumber)+'$'
                 lastDataLen = len(data)
                 data = data.replace(chars, dictIndex)
                 dictionary.update({dictIndex : chars})
+                lastDictLen = len(dictionary)
+                dictCount += 1
                 # Save the compressed data to the output file.
                 with open(outputFile, "wb") as openFile2:
                   openFile2.write(data)
                   openFile2.close()
               else:
                 # Save uncompressed data to the output file.
-                message = 'Skipping bytes '+str(i)+' of '+str(len(data))+' in chunk '+str(chunkCount)
+                message = 'Skipping bytes '+str(i)+' of '+str(len(data))+' in chunk '+str(tempChunkCount)
                 if logging > 1:
                   writeLog(logFile, message, time, 0, 0)
                 if verbosity > 1:
@@ -364,7 +367,9 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                   openFile2.write(data)
                   openFile2.close()
                 break
-              counter0 += 1
+              dictLength = int(dictLength / dictCount / 2)
+            lastChunk = counter0            
+            counter0 += 1
           openFile.close()
           with open(dictFile, "wb") as openFile3:
             openFile3.write(str(dictionary))
