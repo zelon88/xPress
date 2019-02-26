@@ -1,6 +1,6 @@
 # --------------------------------------------------
 # xPress.py
-# v0.9.5 - 2/21/2019
+# v0.9.6 - 2/21/2019
 
 # Justin Grimes (@zelon88)
 #   https://github.com/zelon88/xPress
@@ -368,6 +368,8 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                   openFile2.close()
                 break
               dictLength = int(dictLength / dictCount / 2)
+              if dictLength <= 6:
+                dictLength = 6
             lastChunk = counter0            
             counter0 += 1
           openFile.close()
@@ -425,7 +427,7 @@ def compressFile(logging, verbosity, outputFile, compressedData, dictionary, dic
 # EXTRACT
 # A function to extract compressed data and reconstruct the dictionary file.
 def extractDictionary(logging, verbosity, inputFile, outputFile, dictFile, dictionaryPrefix, dictionarySufix, errorCounter):
-  result = dictionary = data = 'ERROR'
+  result = dictionary = inData = outputRaw = 'ERROR'
   # Perform sanity checks before attempting anything.
   if os.path.isfile(outputFile) or os.path.isfile(dictFile):
     message = 'The output file or temp files already exist for outputFile '+str(outputFile)
@@ -445,11 +447,9 @@ def extractDictionary(logging, verbosity, inputFile, outputFile, dictFile, dicti
       # Open the input file and put its contents into memory.
       with open(inputFile, "rb") as inputData:
         inData = inputData.read()
-        # Extract the dictionary data from the input data.
-        dictionaryData = inData[inData.find(dictionaryPrefix)+len(dictionaryPrefix):inData.find(dictionarySufix)]
-        inData = inData.replace(dictionaryData, '').replace(dictionaryPrefix, '').replace(dictionarySufix, '')
-        dictionaryData = dictionaryData.replace(dictionaryPrefix, '').replace(dictionarySufix, '')
         inputData.close()
+      # Extract the dictionary data from the input data.
+      dictionaryData = inData[inData.find(dictionaryPrefix)+len(dictionaryPrefix):inData.find(dictionarySufix)].replace(dictionaryPrefix, '').replace(dictionarySufix, '')
       # Write the extracted dictionary data to a temporary dictionary file.
       with open(dictFile, "wb") as dictData:
         dictData.write(dictionaryData)
@@ -457,15 +457,16 @@ def extractDictionary(logging, verbosity, inputFile, outputFile, dictFile, dicti
         # Create an output file, separate compressed data from dictionary data, and put just the compressed data into it.
       with open(outputFile, "wb") as outputData:
         outputRaw = inData.replace(dictionaryPrefix+dictionaryData+dictionarySufix, '')
+        inData = ''
         outputData.write(outputRaw)
         outputData.close()
+      dictionaryData = ''
       dictFileOpen = open(dictFile, "rb")
       dictionary = pickle.load(dictFileOpen)
       dictFileOpen.close()
-      data = outputRaw
       result = 1
     else:
-      result = dictionary = data = 'ERROR'
+      result = dictionary = outputRaw = 'ERROR'
       errorCounter += 1
       message = 'The operation failed to extract a dictionary from inputFile '+str(inputFile)
       if logging > 0:
@@ -475,7 +476,7 @@ def extractDictionary(logging, verbosity, inputFile, outputFile, dictFile, dicti
       else:
         sys.exit()
   if not os.path.isfile(dictFile):
-    result = dictionary = data = 'ERROR'
+    result = dictionary = outputRaw = 'ERROR'
     errorCounter += 1
     message = 'The operation failed to write the dictionary to outputFile'+str(outputFile)
     if logging > 0:
@@ -484,7 +485,7 @@ def extractDictionary(logging, verbosity, inputFile, outputFile, dictFile, dicti
       dieGracefully(message, 438, errorCounter)
     else:
       sys.exit()
-  return dictionary, data, result
+  return dictionary, outputRaw, result
 # --------------------------------------------------
 
 # --------------------------------------------------
@@ -518,7 +519,7 @@ def dictionaryLoop(logging, verbosity, compressedData, dictionary, errorCounter)
         writeLog(logFile, message, time, 0, 0)
       if verbosity > 1:
         printGracefully(logPrefix, message)
-  return compressedData, dictionary, matchCount, result
+  return decompressedData, dictionary, matchCount, result
 # --------------------------------------------------
 
 # --------------------------------------------------
@@ -527,7 +528,6 @@ def dictionaryLoop(logging, verbosity, compressedData, dictionary, errorCounter)
 def decompressFile(logging, verbosity, outputFile, compressedData, dictionary, errorCounter):
   result = 'ERROR'
   counter = 1
-  decompressedData = ''
   if not os.path.isfile(outputFile) or compressedData == 'ERROR' or dictionary == 'ERROR':
     errorCounter += 1
     message = 'Could not decompress outputFile '+str(outputFile)
@@ -559,6 +559,7 @@ def decompressFile(logging, verbosity, outputFile, compressedData, dictionary, e
     with open(outputFile, "wb") as outputData:
       outputData.write(compressedData)
       outputData.close()
+      compressedData = ''
     if not os.path.isfile(outputFile):
       result = 'ERROR'
       errorCounter += 1
@@ -611,9 +612,10 @@ if sys.argv[1] == 'e':
 
 # --------------------------------------------------
 # COMPRESS & EXTRACT
-message = "\n"
+message = 'Operation complete'
 if logging > 1:
   writeLog(logFile, message, time, 0, 0)
 if verbosity > 1:
   printGracefully('', message)
+  print("\n")
 # --------------------------------------------------
