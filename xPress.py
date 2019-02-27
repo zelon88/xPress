@@ -86,34 +86,6 @@ def dieGracefully(errorMessage, errorNumber, errorCounter):
 # --------------------------------------------------
 
 # --------------------------------------------------
-# COMPRESS
-# A function for determining a dictLength for the operation.
-def defineDictLength(inputFile):
-  message = 'Defining dictLength with inputFile '+str(inputFile)
-  if logging > 1:
-    writeLog(logFile, message, time, 0, 0)
-  if verbosity > 1:
-    printGracefully(logPrefix, message)
-  # Get the filesize of an inputFile for hueristics.
-  size = os.stat(inputFile)
-  size = size.st_size
-  # Get the mime type of an inputFile for hueristics.
-  filetype = mime.from_file(inputFile)
-  if filetype.count('text') > 0:
-    dictLength = int(size - (0.99 * size))
-  else:
-    dictLength = int(size - (0.9999 * size))
-  message = 'DictLength is ' + str(dictLength)
-  if logging > 1:
-    writeLog(logFile, message, time, 0, 0)
-  if verbosity > 1:
-    printGracefully(logPrefix, message)
-  return dictLength
-
-    
-# --------------------------------------------------
-
-# --------------------------------------------------
 # COMPRESS & EXTRACT
 # A function to write an entry to the logFile. 
 # Do not punctuate your log entries with punctuation, or it will look strange.
@@ -318,6 +290,32 @@ def defineOffset(logging, verbosity, inputFile, chunkSize):
 
 # --------------------------------------------------
 # COMPRESS
+# A function for determining a dictLength for the operation.
+def defineDictLength(inputFile):
+  message = 'Defining dictLength with inputFile '+str(inputFile)
+  if logging > 1:
+    writeLog(logFile, message, time, 0, 0)
+  if verbosity > 1:
+    printGracefully(logPrefix, message)
+  # Get the filesize of an inputFile for hueristics.
+  size = os.stat(inputFile)
+  size = size.st_size
+  # Get the mime type of an inputFile for hueristics.
+  filetype = mime.from_file(inputFile)
+  if filetype.count('text') > 0:
+    dictLength = int(size - (0.99 * size))
+  else:
+    dictLength = int(size - (0.99999 * size))
+  message = 'DictLength is ' + str(dictLength)
+  if logging > 1:
+    writeLog(logFile, message, time, 0, 0)
+  if verbosity > 1:
+    printGracefully(logPrefix, message)
+  return dictLength
+# --------------------------------------------------
+
+# --------------------------------------------------
+# COMPRESS
 # A function to iterate through the temp file and build a dictionary for the file.
 def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLength, dictionaryPrefix, dictionarySufix, errorCounter):
   dictionary = result = data = 'ERROR'
@@ -385,11 +383,22 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                   openFile2.write(data)
                   openFile2.close()
               else:
-                if adjusted < 9 and dictLength != 5:
+                if adjusted < 9 and dictLength != 3:
                   dictLength = dictLength / 10
-                  if dictLength < 5:
-                    dictLength = 5
+                  if dictLength < 3:
+                    dictLength = 3
                   message = 'Decreasing the dictLength, currently ' + str(dictLength)
+                  if logging > 1:
+                    writeLog(logFile, message, time, 0, 0)
+                  if verbosity > 1:
+                    printGracefully(logPrefix, message)
+                  adjusted += 1
+                  continue
+                if adjusted >= 9 and adjusted < 18 and dictLength < dataLen:
+                  dictLength = dictLength * dictLength
+                  if dictLength < 3:
+                    dictLength = 3
+                  message = 'Increasing the dictLength, currently ' + str(dictLength)
                   if logging > 1:
                     writeLog(logFile, message, time, 0, 0)
                   if verbosity > 1:
@@ -406,9 +415,6 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                   openFile2.write(data)
                   openFile2.close()
                 break
-              dictLength = int(dictLength / dictCount / 2)
-              if dictLength <= 6:
-                dictLength = 6
               newLoop = False
               lastChunk = counter0            
             counter0 += 1
