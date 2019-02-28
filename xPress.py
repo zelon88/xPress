@@ -1,6 +1,6 @@
 # --------------------------------------------------
 # xPress.py
-# v0.9.8 - 2/26/2019
+# v0.9.9 - 2/27/2019
 
 # Justin Grimes (@zelon88)
 #   https://github.com/zelon88/xPress
@@ -303,20 +303,25 @@ def defineDictLength(inputFile):
   size = os.stat(inputFile)
   size = size.st_size
   dictLength = 15
+  if size < 10:
+    dictLength = int(size - (0.9 * size))
+  if size > 10:
+    dictLength = int(size - (0.9 * size))
+  if size > 100:
+    dictLength = int(size - (0.9 * size))
   if size > 1000:
     dictLength = int(size - (0.99 * size))
   if size > 10000:
     dictLength = int(size - (0.999 * size))
+  # The below size passed testing.
   if size > 100000:
     dictLength = int(size - (0.9999 * size))
   if size > 1000000:
-    dictLength = int(size - (0.99999 * size))
+    dictLength = int(size - (0.9999 * size))
   if size > 10000000:
-    dictLength = int(size - (0.999999 * size))
+    dictLength = int(size - (0.99999 * size))
   if size > 100000000:
-    dictLength = int(size - (0.9999999 * size))
-  if size > 1000000000:
-    dictLength = int(size - (0.99999999 * size))
+    dictLength = int(size - (0.999999 * size))
   # Set a default minimum.
   if dictLength < 3:
     dictLength = 3
@@ -353,6 +358,7 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
         writeLog(logFile, message, time, 0, 0)
       if verbosity > 1:
         printGracefully(logPrefix, message)
+      # Set some variables.
       dictionary = {}
       dictIndexNumber = counter0 = dictCount = lastDictLen = lastChunk = 0
       dictIndex = '#',str(dictIndexNumber),'$'
@@ -361,6 +367,7 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
       if dOffResult != 'ERROR' and tempOffset != 'ERROR' and tempChunkCount > 0:
         # Open the input file.
         with open(inputFile, "rb") as openFile:
+          # Stop execution after all chunks are processed.
           while counter0 <= tempChunkCount:
             newLoop = True
             # Set the current offset.
@@ -376,13 +383,12 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                 writeLog(logFile, message, time, 0, 0)
               if verbosity > 1:
                 printGracefully(logPrefix, message)
+              # Fill up the chars buffer.
               chars = data[i:(i+dictLength)]
-              nextIndexNumber = dictIndexNumber + 1
               dataLen = len(data)
-              nextIndex = '#'+str(nextIndexNumber)+'$'
               percentageOf = (lastDataLen - dataLen) / lastDataLen * 100
               # Check to make sure the data is shrinking rather than growing.
-              if ((newLoop == True or percentageOf < 3) and ((dictionaryLen - lastDictLen) <= (lastDataLen - dataLen)) and (lastDataLen >= dataLen) or lastChunk != counter0):
+              if (i < dataLen and (newLoop == True or percentageOf < 5) and ((dictionaryLen - lastDictLen) <= (lastDataLen - dataLen)) and (lastDataLen >= dataLen) or lastChunk != counter0):
                 dictIndexNumber += 1
                 dictIndex = '#'+str(dictIndexNumber)+'$'
                 lastDataLen = len(data)
@@ -392,7 +398,7 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                 dictionaryLen = len(dictionary)
                 dictCount += 1
                 # Set the file mode to append if a file already exists or write if one does not.
-                if newLoop == True:
+                if newLoop == True and os.path.isfile(outputFile):
                   append = "ab"
                 else:
                   append = "wb"  
@@ -403,7 +409,7 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                 append = "wb"
                 newLoop = False
               else:
-                if adjusted < 4 and dictLength != 3:
+                if i < dataLen and adjusted < 4 and dictLength != 3:
                   dictLength = dictLength / 2
                   if dictLength < 3:
                     dictLength = 3
@@ -422,7 +428,7 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                     openFile2.write(data)
                     openFile2.close()
                   continue
-                if adjusted >= 4 and adjusted < 9 or (dictLength == 3):
+                if i < dataLen and adjusted >= 4 and adjusted < 9 or (dictLength == 3):
                   dictLength = dictLength * dictLength
                   if dictLength < 3:
                     dictLength = 3
@@ -435,7 +441,7 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                     printGracefully(logPrefix, message)
                   adjusted += 1
                   # Set the file mode to append if a file already exists or write if one does not.
-                  if newLoop == True:
+                  if newLoop == True and os.path.isfile(outputFile):
                     append = "ab"
                   else:
                     append = "wb"  
