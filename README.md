@@ -64,7 +64,7 @@ Extract test.xpr, create output.txt, use log level 1, use verbosity level 0.
 
 Display help text.
 
-- *xPress.py h
+- *xPress.py h*
 
 # Anything else?
 
