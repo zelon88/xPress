@@ -71,3 +71,7 @@ Display help text.
 Please check out the code and help me make it better. I know the field of data compression is a science that I'm just scratching the surface of and I would greatly appreciate any feedback.
 
 xPress.py is an [HonestRepair](https://www.HonestRepair.net/) project by Justin Grimes (@zelon88).
+
+# Screenshot!!!
+
+![xPress](https://github.com/zelon88/xPress/blob/master/Screenshot.png)	
