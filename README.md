@@ -74,4 +74,4 @@ xPress.py is an [HonestRepair](https://www.HonestRepair.net/) project by Justin 
 
 # Screenshot!!!
 
-![xPress](https://github.com/zelon88/xPress/blob/master/Screensho2t.png)	
+![xPress](https://github.com/zelon88/xPress/blob/master/Screenshot.png)	
