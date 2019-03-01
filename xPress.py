@@ -1,6 +1,6 @@
 # --------------------------------------------------
 # xPress.py
-# v0.9.9 - 2/27/2019
+# v1.0 - 2/27/2019
 
 # Justin Grimes (@zelon88)
 #   https://github.com/zelon88/xPress
@@ -302,41 +302,54 @@ def defineDictLength(inputFile):
   # Get the filesize of an inputFile for hueristics.
   size = os.stat(inputFile)
   size = size.st_size
-  dictLength = 15
   if size < 10:
     dictLength = int(size - (0.9 * size))
+    threshold = 10
   if size > 10:
     dictLength = int(size - (0.9 * size))
+    threshold = 10
   if size > 100:
     dictLength = int(size - (0.9 * size))
+    threshold = 10
   if size > 1000:
-    dictLength = int(size - (0.99 * size))
+    dictLength = int(size - (0.9 * size))
+    threshold = 10
   if size > 10000:
-    dictLength = int(size - (0.999 * size))
-  # The below size passed testing.
+    dictLength = int(size - (0.9 * size))
+    threshold = 7
   if size > 100000:
+    dictLength = int(size - (0.99 * size))
+    threshold = 3
+  if size > 250000:
+    dictLength = int(size - (0.999 * size))
+    threshold = 2
+  if size > 500000:
     dictLength = int(size - (0.9999 * size))
+    threshold = 1
   if size > 1000000:
-    dictLength = int(size - (0.9999 * size))
-  if size > 10000000:
     dictLength = int(size - (0.99999 * size))
-  if size > 100000000:
+    threshold = 0.75  
+  if size > 10000000:
     dictLength = int(size - (0.999999 * size))
+    threshold = 0.5
+  if size > 100000000:
+    dictLength = int(size - (0.9999999 * size))
+    threshold = 0.25
   # Set a default minimum.
-  if dictLength < 3:
-    dictLength = 3
+  if dictLength < 2:
+    dictLength = 2
   message = 'DictLength is ' + str(dictLength)
   if logging > 1:
     writeLog(logFile, message, time, 0, 0)
   if verbosity > 1:
     printGracefully(logPrefix, message)
-  return dictLength
+  return dictLength, threshold
 # --------------------------------------------------
 
 # --------------------------------------------------
 # COMPRESS
 # A function to iterate through the temp file and build a dictionary for the file.
-def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLength, dictionaryPrefix, dictionarySufix, errorCounter):
+def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLength, threshold, dictionaryPrefix, dictionarySufix, errorCounter):
   dictionary = result = data = 'ERROR'
   # Verify that no output file or dict file exists already.
   if os.path.isfile(outputFile) or os.path.isfile(dictFile):
@@ -369,6 +382,7 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
         with open(inputFile, "rb") as openFile:
           # Stop execution after all chunks are processed.
           while counter0 <= tempChunkCount:
+            threshold = 1
             newLoop = True
             # Set the current offset.
             filePosition = openFile.tell()
@@ -386,30 +400,29 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
               # Fill up the chars buffer.
               chars = data[i:(i+dictLength)]
               dataLen = len(data)
+              # Calculate the percentageOf compression achieved in the last loop.
               percentageOf = (lastDataLen - dataLen) / lastDataLen * 100
               # Check to make sure the data is shrinking rather than growing.
-              if (i < dataLen and (newLoop == True or percentageOf < 5) and ((dictionaryLen - lastDictLen) <= (lastDataLen - dataLen)) and (lastDataLen >= dataLen) or lastChunk != counter0):
+              if (i < dataLen and data.count(chars) > 1 and (newLoop == True or percentageOf >= threshold) or lastChunk != counter0):
                 dictIndexNumber += 1
                 dictIndex = '#'+str(dictIndexNumber)+'$'
                 lastDataLen = len(data)
                 data = data.replace(chars, dictIndex)
+                dataLen = len(data)
                 lastDictLen = len(dictionary)
                 dictionary.update({dictIndex : chars})
                 dictionaryLen = len(dictionary)
                 dictCount += 1
-                # Set the file mode to append if a file already exists or write if one does not.
-                if newLoop == True and os.path.isfile(outputFile):
-                  append = "ab"
-                else:
-                  append = "wb"  
+                percentageOf = (lastDataLen - dataLen) / lastDataLen * 100
                 # Save the compressed data to the output file.
-                with open(outputFile, append) as openFile2:
+                with open(outputFile, "wb") as openFile2:
                   openFile2.write(data)
                   openFile2.close()
                 append = "wb"
                 newLoop = False
               else:
-                if i < dataLen and adjusted < 4 and dictLength != 3:
+                # Decrease the dictLengh if results are not forthcoming.
+                if adjusted < 4 and dictLength != 3:
                   dictLength = dictLength / 2
                   if dictLength < 3:
                     dictLength = 3
@@ -419,16 +432,12 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                   if verbosity > 1:
                     printGracefully(logPrefix, message)
                   adjusted += 1
-                  # Set the file mode to append if a file already exists or write if one does not.
-                  if os.path.isfile(outputFile):
-                    append = "ab"
-                  else:
-                    append = "wb"  
-                  with open(outputFile, append) as openFile2:
+                  with open(outputFile, "wb") as openFile2:
                     openFile2.write(data)
                     openFile2.close()
                   continue
-                if i < dataLen and adjusted >= 4 and adjusted < 9 or (dictLength == 3):
+                # Increase the dictLengh if results are not forthcoming.
+                if adjusted >= 4 and adjusted < 9:
                   dictLength = dictLength * dictLength
                   if dictLength < 3:
                     dictLength = 3
@@ -440,12 +449,7 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                   if verbosity > 1:
                     printGracefully(logPrefix, message)
                   adjusted += 1
-                  # Set the file mode to append if a file already exists or write if one does not.
-                  if newLoop == True and os.path.isfile(outputFile):
-                    append = "ab"
-                  else:
-                    append = "wb"  
-                  with open(outputFile, append) as openFile2:
+                  with open(outputFile, "wb") as openFile2:
                     openFile2.write(data)
                     openFile2.close()
                   continue
@@ -457,12 +461,7 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                   writeLog(logFile, message, time, 0, 0)
                 if verbosity > 1:
                   printGracefully(logPrefix, message)
-                # Set the file mode to append if a file already exists or write if one does not.
-                if newLoop == True:
-                  append = "ab"
-                else:
-                  append = "wb"  
-                with open(outputFile, append) as openFile2:
+                with open(outputFile, "wb") as openFile2:
                   openFile2.write(data)
                   openFile2.close()
                 break
@@ -697,8 +696,8 @@ def printWelcome(logging, verbosity):
 if sys.argv[1] == 'c':
   logging, verbosity, tempFile, tempPath, inputFile, inputPath, outputFile, outputPath, dictFile, dictPath = parseArgs(logging, verbosity, sys.argv[1:], errorCounter)  
   printWelcome(logging, verbosity)
-  dictLength = defineDictLength(inputFile)
-  dictionary, compressedData, dictResult = buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLength, dictionaryPrefix, dictionarySufix, errorCounter)
+  dictLength, threshold = defineDictLength(inputFile)
+  dictionary, compressedData, dictResult = buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLength, threshold, dictionaryPrefix, dictionarySufix, errorCounter)
   if dictResult != 'ERROR':
     compressionResult = compressFile(logging, verbosity, outputFile, compressedData, dictionary, dictionaryPrefix, dictionarySufix, errorCounter)
   else:
