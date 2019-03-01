@@ -19,7 +19,7 @@ Decompression requires nothing special configuration-wise. The dictLength is inf
 
 # Where should I start?
 
-There's some example commands in Example_Commands.txt, bu here's a quick rundown...
+There's some example commands in Example_Commands.txt, but here's a quick rundown...
 
 ## Usage
 
