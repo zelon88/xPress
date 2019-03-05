@@ -76,7 +76,7 @@ def printGracefully(logPrefix, message):
 # --------------------------------------------------
 # COMPRESS & EXTRACT
 # A function to kill the program gracefully during unrecoverable error.
-# The errorMessage will be displayed to the user, unless the s switch is set.
+# The errorMessage will be displayed to the user.
 # Note this uses sys.exit(), which not only kills this script but the entire interpreter.
 def dieGracefully(errorMessage, errorNumber, errorCounter):
   print ('ERROR-'+str(errorCounter)+'!!! xPress'+str(errorNumber)+': '+str(errorMessage)+' on '+str(time)+'!')
