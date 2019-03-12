@@ -380,6 +380,7 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
       if dOffResult != 'ERROR' and tempOffset != 'ERROR' and tempChunkCount > 0:
         # Open the input file.
         with open(inputFile, "rb") as openFile:
+          append1 = "wb"
           # Stop execution after all chunks are processed.
           while counter0 <= tempChunkCount:
             threshold = 1
@@ -418,7 +419,6 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                 with open(outputFile, "wb") as openFile2:
                   openFile2.write(data)
                   openFile2.close()
-                append = "wb"
                 newLoop = False
               else:
                 # Decrease the dictLengh if results are not forthcoming.
@@ -453,7 +453,6 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                     openFile2.write(data)
                     openFile2.close()
                   continue
-                  append = "wb"
                   newLoop = False
                 # Save uncompressed data to the output file.
                 message = 'Skipping bytes '+str(i)+' of '+str(dataLen)+' in chunk '+str(counter0)
@@ -461,11 +460,12 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                   writeLog(logFile, message, time, 0, 0)
                 if verbosity > 1:
                   printGracefully(logPrefix, message)
-                with open(outputFile, "wb") as openFile2:
+                if os.path.exists(outputFile):
+                  append1 = "ab"
+                with open(outputFile, append1) as openFile2:
                   openFile2.write(data)
                   openFile2.close()
                 break
-              append = "wb"
               newLoop = False
               lastChunk = counter0            
             counter0 += 1
