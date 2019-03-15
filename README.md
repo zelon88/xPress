@@ -19,41 +19,59 @@ Decompression requires nothing special configuration-wise. The dictLength is inf
 
 # Where should I start?
 
-There's some example commands in Example_Commands.txt, bu here's a quick rundown...
+There's some example commands in Example_Commands.txt, but here's a quick rundown...
 
 ## Usage
 
 If you combine multiple verbosity or log levels the last specified will be used.
 
-h - Display help text. 1st argument.
-c - Convert. 1st argument.
-e - Extract. 1st argument.
+- *h - Display help text. 1st argument.*
 
-C:\Path\To\Input_File - 2nd argument.
+- *c - Convert. 1st argument.*
 
-C:\Path\To\Output_File - 3rd argument
+- *e - Extract. 1st argument.*
 
-v0 - Verbosity 0. Optional. Disable output. 4th or 5th argument.
-v1 - Verbosity 1. Optional. Only errors are output. 4th or 5th argument.
-v2 - Verbosity 2. Optional. Everything is output. 4th or 5th argument.
 
-l0 - Log level 0. Optional. Disable logging. 4th or 5th argument.
-l1 - Log level 1. Optional. Only errors logged. 4th or 5th argument. 
-l2 - Log level 2. Optional. Everything is logged. 4th or 5th argument.
+- *C:\Path\To\Input_File - 2nd argument.*
+
+- *C:\Path\To\Output_File - 3rd argument.*
+
+
+- *v0 - Verbosity 0. Optional. Disable output. 4th or 5th argument.*
+
+- *v1 - Verbosity 1. Optional. Only errors are output. 4th or 5th argument.*
+
+- *v2 - Verbosity 2. Optional. Everything is output. 4th or 5th argument.*
+
+
+- *l0 - Log level 0. Optional. Disable logging. 4th or 5th argument.*
+
+- *l1 - Log level 1. Optional. Only errors logged. 4th or 5th argument.* 
+
+- *l2 - Log level 2. Optional. Everything is logged. 4th or 5th argument.*
 
 ## Examples
 
 Compress test.txt, create output.xpr, use log level 0, use verbosity level 2.
-xPress.py c C:\Users\Test\Desktop\test.txt C:\Users\Test\Desktop\output.xpr v0 l2
+
+- *xPress.py c C:\Users\Test\Desktop\test.txt C:\Users\Test\Desktop\output.xpr v0 l2*
+
 
 Extract test.xpr, create output.txt, use log level 1, use verbosity level 0.
-xPress.py e C:\Users\Test\Desktop\test.xpr C:\Users\Test\Desktop\output.txt l1 v0
+
+- *xPress.py e C:\Users\Test\Desktop\test.xpr C:\Users\Test\Desktop\output.txt l1 v0*
+
 
 Display help text.
-xPress.py h
+
+- *xPress.py h*
 
 # Anything else?
 
 Please check out the code and help me make it better. I know the field of data compression is a science that I'm just scratching the surface of and I would greatly appreciate any feedback.
 
 xPress.py is an [HonestRepair](https://www.HonestRepair.net/) project by Justin Grimes (@zelon88).
+
+# Screenshot!!!
+
+![xPress](https://github.com/zelon88/xPress/blob/master/Screenshot.png)	
