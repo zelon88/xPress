@@ -1,6 +1,6 @@
 # --------------------------------------------------
 # xPress.py
-# v1.0 - 2/27/2019
+# v1.1 - 3/14/2019
 
 # Justin Grimes (@zelon88)
 #   https://github.com/zelon88/xPress
@@ -238,7 +238,7 @@ def defineChunkSize(logging, verbosity, inputFile):
   if verbosity > 1:
     printGracefully(logPrefix, message)
   # Our chunkSize is 1/4 of available memory. This translates to about 1/2 of available memory used once we load each chunk twice.
-  chunkSize = int(availableMemory) / 4
+  chunkSize = int(availableMemory) / 2
   # If the chunkSize is smaller than the file being processed the entire file becomes the only chunk.
   if chunkSize >= fileSize:
     chunkSize = fileSize
@@ -303,38 +303,38 @@ def defineDictLength(inputFile):
   size = os.stat(inputFile)
   size = size.st_size
   if size < 10:
-    dictLength = int(size - (0.9 * size))
-    threshold = 10
+    dictLength = int(size - (0.5 * size))
+    threshold = 0.005
   if size > 10:
-    dictLength = int(size - (0.9 * size))
+    dictLength = int(size - (0.99 * size))
     threshold = 10
   if size > 100:
-    dictLength = int(size - (0.9 * size))
+    dictLength = int(size - (0.99 * size))
     threshold = 10
   if size > 1000:
-    dictLength = int(size - (0.9 * size))
-    threshold = 10
+    dictLength = int(size - (0.99 * size))
+    threshold = 1
   if size > 10000:
-    dictLength = int(size - (0.9 * size))
-    threshold = 7
+    dictLength = int(size - (0.99 * size))
+    threshold = 0.01
   if size > 100000:
     dictLength = int(size - (0.99 * size))
-    threshold = 3
+    threshold = 0.001
   if size > 250000:
-    dictLength = int(size - (0.999 * size))
-    threshold = 2
+    dictLength = int(size - (0.99 * size))
+    threshold = .005
   if size > 500000:
-    dictLength = int(size - (0.9999 * size))
-    threshold = 1
+    dictLength = int(size - (0.999 * size))
+    threshold = .000005
   if size > 1000000:
     dictLength = int(size - (0.99999 * size))
-    threshold = 0.75  
+    threshold = 0.000001 
   if size > 10000000:
     dictLength = int(size - (0.999999 * size))
-    threshold = 0.5
+    threshold = 0.0000001
   if size > 100000000:
     dictLength = int(size - (0.9999999 * size))
-    threshold = 0.25
+    threshold = 0.0001
   # Set a default minimum.
   if dictLength < 2:
     dictLength = 2
@@ -351,6 +351,7 @@ def defineDictLength(inputFile):
 # A function to iterate through the temp file and build a dictionary for the file.
 def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLength, threshold, dictionaryPrefix, dictionarySufix, errorCounter):
   dictionary = result = data = 'ERROR'
+  skip = skipped = False
   # Verify that no output file or dict file exists already.
   if os.path.isfile(outputFile) or os.path.isfile(dictFile):
     errorCounter += 1
@@ -382,7 +383,6 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
         with open(inputFile, "rb") as openFile:
           # Stop execution after all chunks are processed.
           while counter0 <= tempChunkCount:
-            threshold = 1
             newLoop = True
             # Set the current offset.
             filePosition = openFile.tell()
@@ -391,6 +391,8 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
             dataLen = lastDataLen = len(data)
             dictionaryLen = lastDictLen = len(dictionary)
             # Select some data and attempt to compress it.
+            # dictLength can only be set before the first loop for this logic.
+            # Any changes to dictLength made during this loop DO NOT change this "for."
             for i in xrange(0, len(data), dictLength):
               message = 'Initiating a compression loop. Byte '+str(i)+' of '+str(dataLen)+' in chunk '+str(counter0)
               if logging > 1:
@@ -400,10 +402,11 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
               # Fill up the chars buffer.
               chars = data[i:(i+dictLength)]
               dataLen = len(data)
+              dataMatch = data.count(chars)
               # Calculate the percentageOf compression achieved in the last loop.
-              percentageOf = (lastDataLen - dataLen) / lastDataLen * 100
-              # Check to make sure the data is shrinking rather than growing.
-              if (i < dataLen and data.count(chars) > 1 and (newLoop == True or percentageOf >= threshold) or lastChunk != counter0):
+              percentageOf = ((lastDataLen - dataLen) * lastDataLen) / 100
+              # Check to see that the threshold is being met.
+              if (dataMatch >= 2 and (newLoop == True or dataLen <= lastDataLen)):
                 dictIndexNumber += 1
                 dictIndex = '#'+str(dictIndexNumber)+'$'
                 lastDataLen = len(data)
@@ -413,19 +416,22 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                 dictionary.update({dictIndex : chars})
                 dictionaryLen = len(dictionary)
                 dictCount += 1
-                percentageOf = (lastDataLen - dataLen) / lastDataLen * 100
+                percentageOf = ((lastDataLen - dataLen) / lastDataLen) * 100
                 # Save the compressed data to the output file.
-                with open(outputFile, "wb") as openFile2:
+                if newLoop == True and lastChunk != counter0:
+                  append0 = "ab"
+                else:
+                  append0 = "wb"
+                with open(outputFile, append0) as openFile2:
                   openFile2.write(data)
                   openFile2.close()
-                append = "wb"
                 newLoop = False
               else:
                 # Decrease the dictLengh if results are not forthcoming.
                 if adjusted < 4 and dictLength != 3:
                   dictLength = dictLength / 2
-                  if dictLength < 3:
-                    dictLength = 3
+                  if dictLength > int(len(data) / 2):
+                    dictLength = dictLength / (dictLength / 2)
                   message = 'Decreasing the dictLength, currently ' + str(dictLength)
                   if logging > 1:
                     writeLog(logFile, message, time, 0, 0)
@@ -439,10 +445,8 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                 # Increase the dictLengh if results are not forthcoming.
                 if adjusted >= 4 and adjusted < 9:
                   dictLength = dictLength * dictLength
-                  if dictLength < 3:
-                    dictLength = 3
                   if dictLength > int(len(data) / 2):
-                    dictLength = 12
+                    dictLength = dictLength / (dictLength / 2)
                   message = 'Increasing the dictLength, currently ' + str(dictLength)
                   if logging > 1:
                     writeLog(logFile, message, time, 0, 0)
@@ -453,7 +457,6 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                     openFile2.write(data)
                     openFile2.close()
                   continue
-                  append = "wb"
                   newLoop = False
                 # Save uncompressed data to the output file.
                 message = 'Skipping bytes '+str(i)+' of '+str(dataLen)+' in chunk '+str(counter0)
@@ -465,7 +468,6 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                   openFile2.write(data)
                   openFile2.close()
                 break
-              append = "wb"
               newLoop = False
               lastChunk = counter0            
             counter0 += 1
