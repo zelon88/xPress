@@ -47,11 +47,11 @@ If you combine multiple verbosity or log levels the last specified will be used.
 - *v2 - Verbosity 2. Optional. Everything is output. 4th, 5th, or 6th argument.*
 
 
-- *l0 - Log level 0. Optional. Disable logging. 4th or 5th argument.*
+- *l0 - Log level 0. Optional. Disable logging. 4th, 5th or 6th argument.*
 
-- *l1 - Log level 1. Optional. Only errors logged. 4th or 5th argument.*
+- *l1 - Log level 1. Optional. Only errors logged. 4th, 5th or 6th argument.*
 
-- *l2 - Log level 2. Optional. Everything is logged. 4th or 5th argument.*
+- *l2 - Log level 2. Optional. Everything is logged. 4th, 5th or 6th argument.*
 
 
 ## Examples
@@ -64,6 +64,10 @@ Compress test.txt, create output.xpr, use log level 0, use verbosity level 2.
 Extract test.xpr, create output.txt, use log level 1, use verbosity level 0.
 
 - *xPress.py e C:\Users\Test\Desktop\test.xpr C:\Users\Test\Desktop\output.txt l1 v0*
+
+Extract test.xpr, create output.txt, use log level 1, use verbosity level 0, force overwrite of output files.
+
+- *xPress.py e C:\Users\Test\Desktop\test.xpr C:\Users\Test\Desktop\output.txt l1 v0 f*
 
 
 Display help text.
