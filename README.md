@@ -37,18 +37,22 @@ If you combine multiple verbosity or log levels the last specified will be used.
 - *C:\Path\To\Output_File - 3rd argument.*
 
 
-- *v0 - Verbosity 0. Optional. Disable output. 4th or 5th argument.*
+- *f - Forced Overwrite. Optional. Overwrite all output files. 4th, 5th, or 6th argument.*
 
-- *v1 - Verbosity 1. Optional. Only errors are output. 4th or 5th argument.*
 
-- *v2 - Verbosity 2. Optional. Everything is output. 4th or 5th argument.*
+- *v0 - Verbosity 0. Optional. Disable output. 4th, 5th or 6th argument.*
+
+- *v1 - Verbosity 1. Optional. Only errors are output. 4th, 5th or 6th argument.*
+
+- *v2 - Verbosity 2. Optional. Everything is output. 4th, 5th, or 6th argument.*
 
 
 - *l0 - Log level 0. Optional. Disable logging. 4th or 5th argument.*
 
-- *l1 - Log level 1. Optional. Only errors logged. 4th or 5th argument.* 
+- *l1 - Log level 1. Optional. Only errors logged. 4th or 5th argument.*
 
 - *l2 - Log level 2. Optional. Everything is logged. 4th or 5th argument.*
+
 
 ## Examples
 

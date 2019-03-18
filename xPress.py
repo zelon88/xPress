@@ -1,6 +1,6 @@
 # --------------------------------------------------
 # xPress.py
-# v1.1 - 3/14/2019
+# v1.2 - 3/17/2019
 
 # Justin Grimes (@zelon88)
 #   https://github.com/zelon88/xPress
@@ -50,6 +50,7 @@
 # COMPRESS & EXTRACT
 # Load required modules and set global variables.
 import sys, getopt, datetime, os, psutil, math, pickle, re
+forced = False
 now = datetime.datetime.now()
 time = now.strftime("%B %d, %Y, %H:%M")
 logging = 1
@@ -94,7 +95,7 @@ def writeLog(logFile, logEntry, time, errorNumber, errorCounter):
   if os.path.isfile(logFile):
     append = "ab"
   else:
-    append = "wb"
+    append = "wb+"
   if errorNumber > 0:
     entryPrefix = 'ERROR-'+str(errorCounter)+'!!! xPress'+str(errorNumber)+': '
   else: 
@@ -110,6 +111,7 @@ def writeLog(logFile, logEntry, time, errorNumber, errorCounter):
 # COMPRESS & EXTRACT
 # Process user supplied arguments/parameters/switches.
 def parseArgs(logging, verbosity, argv, errorCounter):
+  forced = False
   # Check if any arguments were passed.
   try:
     opts, args = getopt.getopt(argv,"h")
@@ -136,6 +138,9 @@ def parseArgs(logging, verbosity, argv, errorCounter):
       verbosity = 1
     if sys.argv[4] == 'v2':
       verbosity = 2
+    # Set forced overwrite from argument 4.
+    if sys.argv[5] == 'f':
+      forced = True
   if len(sys.argv) > 5:
     # Set the logging level from argument 5.
     if sys.argv[5] == 'l0':
@@ -151,6 +156,27 @@ def parseArgs(logging, verbosity, argv, errorCounter):
       verbosity = 1
     if sys.argv[5] == 'v2':
       verbosity = 2
+    # Set forced overwrite from argument 5.
+    if sys.argv[5] == 'f':
+      forced = True
+  if len(sys.argv) > 6:
+    # Set the logging level from argument 6.
+    if sys.argv[6] == 'l0':
+      logging = 0
+    if sys.argv[6] == 'l1':
+      logging = 1
+    if sys.argv[6] == 'l2':
+      logging = 2
+    # Set the verbosity level from argument 6.
+    if sys.argv[6] == 'v0':
+      verbosity = 0
+    if sys.argv[6] == 'v1':
+      verbosity = 1
+    if sys.argv[6] == 'v2':
+      verbosity = 2
+    # Set forced overwrite from argument 6.
+    if sys.argv[6] == 'f':
+      forced = True
   # Check to see if an input file argument was supplied.
   try:
     sys.argv[1]
@@ -211,7 +237,7 @@ def parseArgs(logging, verbosity, argv, errorCounter):
         dieGracefully(message, 126, errorCounter)
       else:
         sys.exit()
-  return logging, verbosity, tempFile, tempPath, inputFile, inputPath, outputFile, outputPath, dictFile, dictPath
+  return forced, logging, verbosity, tempFile, tempPath, inputFile, inputPath, outputFile, outputPath, dictFile, dictPath
 # --------------------------------------------------
 
 # --------------------------------------------------
@@ -238,7 +264,7 @@ def defineChunkSize(logging, verbosity, inputFile):
   if verbosity > 1:
     printGracefully(logPrefix, message)
   # Our chunkSize is 1/4 of available memory. This translates to about 1/2 of available memory used once we load each chunk twice.
-  chunkSize = int(availableMemory) / 2
+  chunkSize = int(availableMemory) / 6
   # If the chunkSize is smaller than the file being processed the entire file becomes the only chunk.
   if chunkSize >= fileSize:
     chunkSize = fileSize
@@ -349,11 +375,11 @@ def defineDictLength(inputFile):
 # --------------------------------------------------
 # COMPRESS
 # A function to iterate through the temp file and build a dictionary for the file.
-def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLength, threshold, dictionaryPrefix, dictionarySufix, errorCounter):
+def buildDictionary(forced, logging, verbosity, outputFile, inputFile, dictFile, dictLength, threshold, dictionaryPrefix, dictionarySufix, errorCounter):
   dictionary = result = data = 'ERROR'
   skip = skipped = False
   # Verify that no output file or dict file exists already.
-  if os.path.isfile(outputFile) or os.path.isfile(dictFile):
+  if (os.path.isfile(outputFile) or os.path.isfile(dictFile)) and forced == False:
     errorCounter += 1
     message = 'The output file or temp files already exist for outputFile '+str(outputFile)
     if logging > 0:
@@ -406,12 +432,11 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
               # Calculate the percentageOf compression achieved in the last loop.
               percentageOf = ((lastDataLen - dataLen) * lastDataLen) / 100
               # Check to see that the threshold is being met.
-              if (dataMatch >= 2 and (newLoop == True or dataLen <= lastDataLen)):
+              if (dataMatch > 1 and (newLoop == True or dataLen < lastDataLen)):
                 dictIndexNumber += 1
                 dictIndex = '#'+str(dictIndexNumber)+'$'
                 lastDataLen = len(data)
                 data = data.replace(chars, dictIndex)
-                dataLen = len(data)
                 lastDictLen = len(dictionary)
                 dictionary.update({dictIndex : chars})
                 dictionaryLen = len(dictionary)
@@ -421,7 +446,7 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                 if newLoop == True and lastChunk != counter0:
                   append0 = "ab"
                 else:
-                  append0 = "wb"
+                  append0 = "wb+"
                 with open(outputFile, append0) as openFile2:
                   openFile2.write(data)
                   openFile2.close()
@@ -438,7 +463,7 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                   if verbosity > 1:
                     printGracefully(logPrefix, message)
                   adjusted += 1
-                  with open(outputFile, "wb") as openFile2:
+                  with open(outputFile, "wb+") as openFile2:
                     openFile2.write(data)
                     openFile2.close()
                   continue
@@ -453,7 +478,7 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                   if verbosity > 1:
                     printGracefully(logPrefix, message)
                   adjusted += 1
-                  with open(outputFile, "wb") as openFile2:
+                  with open(outputFile, "wb+") as openFile2:
                     openFile2.write(data)
                     openFile2.close()
                   continue
@@ -464,7 +489,7 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
                   writeLog(logFile, message, time, 0, 0)
                 if verbosity > 1:
                   printGracefully(logPrefix, message)
-                with open(outputFile, "wb") as openFile2:
+                with open(outputFile, "wb+") as openFile2:
                   openFile2.write(data)
                   openFile2.close()
                 break
@@ -472,7 +497,7 @@ def buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLen
               lastChunk = counter0            
             counter0 += 1
           openFile.close()
-          with open(dictFile, "wb") as openFile3:
+          with open(dictFile, "wb+") as openFile3:
             openFile3.write(str(dictionary))
             openFile3.close()
       else:
@@ -556,11 +581,11 @@ def extractDictionary(logging, verbosity, inputFile, outputFile, dictFile, dicti
       # Extract the dictionary data from the input data.
       dictionaryData = inData[inData.find(dictionaryPrefix)+len(dictionaryPrefix):inData.find(dictionarySufix)].replace(dictionaryPrefix, '').replace(dictionarySufix, '')
       # Write the extracted dictionary data to a temporary dictionary file.
-      with open(dictFile, "wb") as dictData:
+      with open(dictFile, "wb+") as dictData:
         dictData.write(dictionaryData)
         dictData.close()
         # Create an output file, separate compressed data from dictionary data, and put just the compressed data into it.
-      with open(outputFile, "wb") as outputData:
+      with open(outputFile, "wb+") as outputData:
         outputRaw = inData.replace(dictionaryPrefix+dictionaryData+dictionarySufix, '')
         inData = ''
         outputData.write(outputRaw)
@@ -661,7 +686,7 @@ def decompressFile(logging, verbosity, outputFile, compressedData, dictionary, e
           dieGracefully(message, 500, errorCounter)
         else:
           sys.exit()
-    with open(outputFile, "wb") as outputData:
+    with open(outputFile, "wb+") as outputData:
       outputData.write(compressedData)
       outputData.close()
       compressedData = ''
@@ -696,10 +721,10 @@ def printWelcome(logging, verbosity):
 # COMPRESS
 # Code to compress a specified file.
 if sys.argv[1] == 'c':
-  logging, verbosity, tempFile, tempPath, inputFile, inputPath, outputFile, outputPath, dictFile, dictPath = parseArgs(logging, verbosity, sys.argv[1:], errorCounter)  
+  forced, logging, verbosity, tempFile, tempPath, inputFile, inputPath, outputFile, outputPath, dictFile, dictPath = parseArgs(logging, verbosity, sys.argv[1:], errorCounter)  
   printWelcome(logging, verbosity)
   dictLength, threshold = defineDictLength(inputFile)
-  dictionary, compressedData, dictResult = buildDictionary(logging, verbosity, outputFile, inputFile, dictFile, dictLength, threshold, dictionaryPrefix, dictionarySufix, errorCounter)
+  dictionary, compressedData, dictResult = buildDictionary(forced, logging, verbosity, outputFile, inputFile, dictFile, dictLength, threshold, dictionaryPrefix, dictionarySufix, errorCounter)
   if dictResult != 'ERROR':
     compressionResult = compressFile(logging, verbosity, outputFile, compressedData, dictionary, dictionaryPrefix, dictionarySufix, errorCounter)
   else:
