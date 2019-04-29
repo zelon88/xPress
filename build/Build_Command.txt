@@ -1,0 +1,9 @@
+Don't forget to update FileInfo.txt with the latest version information!
+
+First, CD into the xPress source directory. Make sure there is a Build directory containing
+  the Icon.ico and FileInfo.txt files
+
+If you use absolute paths for the icon file, fileinfo file, or py source code file be sure
+  to surround the paths with spaces (if they contain spaces).
+
+pyinstaller --onefile --icon=Build\Icon.ico --version-file=Build\FileInfo.txt xPress.py
