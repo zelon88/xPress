@@ -1,6 +1,6 @@
 # --------------------------------------------------
 # xPress.py
-# v1.2 - 3/17/2019
+# v1.3 - 5/10/2019
 
 # Justin Grimes (@zelon88)
 #   https://github.com/zelon88/xPress
@@ -379,7 +379,7 @@ def defineDictLength(inputFile):
 # A function to iterate through the temp file and build a dictionary for the file.
 def buildDictionary(forced, logging, verbosity, outputFile, inputFile, dictFile, dictLength, threshold, dictionaryPrefix, dictionarySufix, errorCounter):
   dictionary = result = data = 'ERROR'
-  skip = skipped = False
+  skip = skipped = done = False
   # Verify that no output file or dict file exists already.
   if (os.path.isfile(outputFile) or os.path.isfile(dictFile)) and forced == False:
     errorCounter += 1
@@ -412,6 +412,7 @@ def buildDictionary(forced, logging, verbosity, outputFile, inputFile, dictFile,
           # Stop execution after all chunks are processed.
           while counter0 <= tempChunkCount:
             newLoop = True
+            done = False
             # Set the current offset.
             filePosition = openFile.tell()
             # Fill up the offset buffer.
@@ -421,82 +422,87 @@ def buildDictionary(forced, logging, verbosity, outputFile, inputFile, dictFile,
             # Select some data and attempt to compress it.
             # dictLength can only be set before the first loop for this logic.
             # Any changes to dictLength made during this loop DO NOT change this "for."
-            for i in xrange(0, len(data), dictLength):
-              message = 'Initiating a compression loop. Byte '+str(i)+' of '+str(dataLen)+' in chunk '+str(counter0)
-              if logging > 1:
-                writeLog(logFile, message, time, 0, 0)
-              if verbosity > 1:
-                printGracefully(logPrefix, message)
-              # Fill up the chars buffer.
-              chars = data[i:(i+dictLength)]
-              dataLen = len(data)
-              dataMatch = data.count(chars)
-              # Calculate the percentageOf compression achieved in the last loop.
-              percentageOf = ((lastDataLen - dataLen) * lastDataLen) / 100
-              # Check to see that the threshold is being met.
-              if (dataMatch > 1 and (newLoop == True or dataLen < lastDataLen)):
-                dictIndexNumber += 1
-                dictIndex = '#'+str(dictIndexNumber)+'$'
-                lastDataLen = len(data)
-                data = data.replace(chars, dictIndex)
-                lastDictLen = len(dictionary)
-                dictionary.update({dictIndex : chars})
-                dictionaryLen = len(dictionary)
-                dictCount += 1
-                percentageOf = ((lastDataLen - dataLen) / lastDataLen) * 100
-                # Save the compressed data to the output file.
-                if newLoop == True and lastChunk != counter0:
-                  append0 = "ab"
-                else:
-                  append0 = "wb+"
-                with open(outputFile, append0) as openFile2:
-                  openFile2.write(data)
-                  openFile2.close()
-                newLoop = False
-              else:
-                # Decrease the dictLengh if results are not forthcoming.
-                if adjusted < 4 and dictLength != 3:
-                  dictLength = dictLength / 2
-                  if dictLength > int(len(data) / 2):
-                    dictLength = dictLength / (dictLength / 2)
-                  message = 'Decreasing the dictLength, currently ' + str(dictLength)
-                  if logging > 1:
-                    writeLog(logFile, message, time, 0, 0)
-                  if verbosity > 1:
-                    printGracefully(logPrefix, message)
-                  adjusted += 1
-                  with open(outputFile, "wb+") as openFile2:
-                    openFile2.write(data)
-                    openFile2.close()
-                  continue
-                # Increase the dictLengh if results are not forthcoming.
-                if adjusted >= 4 and adjusted < 9:
-                  dictLength = dictLength * dictLength
-                  if dictLength > int(len(data) / 2):
-                    dictLength = dictLength / (dictLength / 2)
-                  message = 'Increasing the dictLength, currently ' + str(dictLength)
-                  if logging > 1:
-                    writeLog(logFile, message, time, 0, 0)
-                  if verbosity > 1:
-                    printGracefully(logPrefix, message)
-                  adjusted += 1
-                  with open(outputFile, "wb+") as openFile2:
-                    openFile2.write(data)
-                    openFile2.close()
-                  continue
-                  newLoop = False
-                # Save uncompressed data to the output file.
-                message = 'Skipping bytes '+str(i)+' of '+str(dataLen)+' in chunk '+str(counter0)
+            origDictLength = dictLength
+            def compressData(done, logging, verbosity, outputFile, dictLength, counter0, dictionaryLen, dataLen, lastDataLen, data, filePosition, newLoop, adjusted, dictIndexNumber, dictCount):
+              for i in xrange(0, len(data), dictLength):
+                message = 'Initiating a compression loop. Byte '+str(i)+' of '+str(dataLen)+' in chunk '+str(counter0)
                 if logging > 1:
                   writeLog(logFile, message, time, 0, 0)
                 if verbosity > 1:
                   printGracefully(logPrefix, message)
-                with open(outputFile, "wb+") as openFile2:
-                  openFile2.write(data)
-                  openFile2.close()
-                break
-              newLoop = False
-              lastChunk = counter0            
+                # Fill up the chars buffer.
+                chars = data[i:(i+dictLength)]
+                dataLen = len(data)
+                dataMatch = data.count(chars)
+                # Calculate the percentageOf compression achieved in the last loop.
+                percentageOf = ((lastDataLen - dataLen) * lastDataLen) / 100
+                # Check to see that the threshold is being met.
+                if (dataMatch > 1 and (newLoop == True or dataLen < lastDataLen)):
+                  dictIndexNumber += 1
+                  dictIndex = '#'+str(dictIndexNumber)+'$'
+                  lastDataLen = len(data)
+                  data = data.replace(chars, dictIndex)
+                  lastDictLen = len(dictionary)
+                  dictionary.update({dictIndex : chars})
+                  dictionaryLen = len(dictionary)
+                  dictCount += 1
+                  percentageOf = ((lastDataLen - dataLen) / lastDataLen) * 100
+                  # Save the compressed data to the output file.
+                  if newLoop == True:
+                    append0 = "ab"
+                  else:
+                    append0 = "wb+"
+                  with open(outputFile, append0) as openFile2:
+                    openFile2.write(data)
+                    openFile2.close()
+                  newLoop = False
+                else:
+                  # Decrease the dictLengh if results are not forthcoming.
+                  if adjusted < 4 and dictLength != 3:
+                    dictLength = dictLength / 2
+                    if dictLength > int(len(data) / 2):
+                      dictLength = dictLength / (dictLength / 2)
+                    message = 'Decreasing the dictLength, currently ' + str(dictLength)
+                    if logging > 1:
+                      writeLog(logFile, message, time, 0, 0)
+                    if verbosity > 1:
+                      printGracefully(logPrefix, message)
+                    adjusted += 1
+                    with open(outputFile, "wb+") as openFile2:
+                      openFile2.write(data)
+                      openFile2.close()
+                    continue
+                  # Increase the dictLengh if results are not forthcoming.
+                  if adjusted >= 4 and adjusted < 9:
+                    dictLength = dictLength * dictLength
+                    if dictLength > int(len(data) / 2):
+                      dictLength = dictLength / (dictLength / 2)
+                    message = 'Increasing the dictLength, currently ' + str(dictLength)
+                    if logging > 1:
+                      writeLog(logFile, message, time, 0, 0)
+                    if verbosity > 1:
+                      printGracefully(logPrefix, message)
+                    adjusted += 1
+                    with open(outputFile, "wb+") as openFile2:
+                      openFile2.write(data)
+                      openFile2.close()
+                    continue
+                    newLoop = False
+                  # Save uncompressed data to the output file.
+                  done = True
+                  message = 'Skipping bytes '+str(i)+' of '+str(dataLen)+' in chunk '+str(counter0)
+                  if logging > 1:
+                    writeLog(logFile, message, time, 0, 0)
+                  if verbosity > 1:
+                    printGracefully(logPrefix, message)
+                  with open(outputFile, "wb+") as openFile2:
+                    openFile2.write(data)
+                    openFile2.close()
+                  break
+                newLoop = False
+              return done, logging, verbosity, outputFile, dictLength, counter0, dictionaryLen, dataLen, lastDataLen, data, filePosition, newLoop, adjusted, dictIndexNumber, dictCount
+            while done != True:
+              done, logging, verbosity, outputFile, dictLength, counter0, dictionaryLen, dataLen, lastDataLen, data, filePosition, newLoop, adjusted, dictIndexNumber, dictCount = compressData(done, logging, verbosity, outputFile, dictLength, counter0, dictionaryLen, dataLen, lastDataLen, data, filePosition, newLoop, adjusted, dictIndexNumber, dictCount)
             counter0 += 1
           openFile.close()
           with open(dictFile, "wb+") as openFile3:
@@ -744,7 +750,7 @@ if sys.argv[1] == 'c':
 # EXTRACT
 # Code to extract a specified file.
 if sys.argv[1] == 'e':
-  logging, verbosity, tempFile, tempPath, inputFile, inputPath, outputFile, outputPath, dictFile, dictPath = parseArgs(logging, verbosity, sys.argv[1:], errorCounter)  
+  forced, logging, verbosity, tempFile, tempPath, inputFile, inputPath, outputFile, outputPath, dictFile, dictPath = parseArgs(logging, verbosity, sys.argv[1:], errorCounter)  
   printWelcome(logging, verbosity)
   dictionary, compressedData, dictResult = extractDictionary(logging, verbosity, inputFile, outputFile, dictFile, dictionaryPrefix, dictionarySufix, errorCounter)
   if dictResult != 'ERROR':
