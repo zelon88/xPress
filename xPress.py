@@ -1,6 +1,6 @@
 # --------------------------------------------------
 # xPress.py
-# v1.3 - 5/10/2019
+# v1.3.5 - 5/10/2019
 
 # Justin Grimes (@zelon88)
 #   https://github.com/zelon88/xPress
@@ -504,6 +504,8 @@ def buildDictionary(forced, logging, verbosity, outputFile, inputFile, dictFile,
             while done != True:
               done, logging, verbosity, outputFile, dictLength, counter0, dictionaryLen, dataLen, lastDataLen, data, filePosition, newLoop, adjusted, dictIndexNumber, dictCount = compressData(done, logging, verbosity, outputFile, dictLength, counter0, dictionaryLen, dataLen, lastDataLen, data, filePosition, newLoop, adjusted, dictIndexNumber, dictCount)
             counter0 += 1
+            if counter0 == tempChunkCount:
+              break
           openFile.close()
           with open(dictFile, "wb+") as openFile3:
             openFile3.write(str(dictionary))
