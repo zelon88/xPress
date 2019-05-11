@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['xPress.py'],
-             pathex=['c:\\Users\\jgrimes\\Desktop\\xPress\\xPress'],
+             pathex=['C:\\Users\\Justin\\Desktop\\xPress-master'],
              binaries=[],
              datas=[],
              hiddenimports=[],
