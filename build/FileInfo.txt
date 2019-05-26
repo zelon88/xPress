@@ -36,7 +36,7 @@ StringFileInfo(
     StringStruct(u'LegalCopyright', u'Copyright (c) HonestRepair'),
     StringStruct(u'OriginalFilename', u'xPress.exe'),
     StringStruct(u'ProductName', u'xPress'),
-    StringStruct(u'ProductVersion', u'v1.3')])
+    StringStruct(u'ProductVersion', u'v1.3.7')])
   ]), 
 VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
   ]
