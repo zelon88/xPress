@@ -1,6 +1,6 @@
 # --------------------------------------------------
 # xPress.py
-# v1.3.7 - 5/12/2019
+# v1.3.8 - 5/26/2019
 
 # Justin Grimes (@zelon88)
 #   https://github.com/zelon88/xPress
@@ -66,6 +66,14 @@ dictLength = 12
 dictionaryPrefix = '@!@!DST@!@!'
 dictionarySufix = '@!@!DND@!@!'
 logPrefix = 'OP-Act: '
+# --------------------------------------------------
+
+# --------------------------------------------------
+# COMPRESS
+# Set constants for configuring compression.
+chunksizeCoef = 50
+dictCoef = 0.9999
+threshCoef = 100
 # --------------------------------------------------
 
 # --------------------------------------------------
@@ -219,8 +227,8 @@ def defineChunkSize(logging, verbosity, inputFile):
   message = 'Available memory is '+str(availableMemory)
   if logging > 1: writeLog(logFile, message, time, 0, 0)
   if verbosity > 1: printGracefully(logPrefix, message)
-  # Our chunkSize is 1/4 of available memory. This translates to about 1/2 of available memory used once we load each chunk twice.
-  chunkSize = int(availableMemory) / 100
+  # Our chunkSize is 1/100 of available memory. This translates to about 1/2 of available memory used once we load each chunk twice.
+  chunkSize = int(availableMemory) / chunksizeCoef
   # If the chunkSize is smaller than the file being processed the entire file becomes the only chunk.
   if chunkSize >= fileSize: chunkSize = fileSize
   message = 'ChunkSize is '+str(chunkSize)
@@ -272,10 +280,10 @@ def defineDictLength(inputFile):
   if verbosity > 1: printGracefully(logPrefix, message)
   # Get the filesize of an inputFile for hueristics.
   size = os.stat(inputFile).st_size
-  dictLength = int(size - (0.9999 * size))
-  threshold = 0.5
+  dictLength = int(size - (dictCoef * size))
+  threshold = size / threshCoef
   # Set a default minimum.
-  if dictLength < 2: dictLength = 2
+  if dictLength < 5: dictLength = 5
   message = 'DictLength is ' + str(dictLength)
   if logging > 1: writeLog(logFile, message, time, 0, 0)
   if verbosity > 1: printGracefully(logPrefix, message)
@@ -286,8 +294,9 @@ def defineDictLength(inputFile):
 # COMPRESS
 # A function to compress a selection of data.
 def compressData(dictionary, adjusted, done, logging, verbosity, outputFile, dictLength, counter0, dataLen, lastDataLen, data, filePosition, dictIndexNumber):
-  if dictLength < 1: dictLength = 5
+  if dictLength < 5: dictLength = 5
   newLoop = True
+  done = False
   i = 0
   for i in range(i, dataLen, dictLength):
     append0 = "ab"
@@ -298,8 +307,8 @@ def compressData(dictionary, adjusted, done, logging, verbosity, outputFile, dic
     chars = data[i:(i+dictLength)]
     dataLen = len(data)
     dataMatch = data.count(chars)
-    # Calculate the percentageOf compression achieved in the last loop.
-    #percentageOf = ((lastDataLen - dataLen) * lastDataLen) / 100
+    # Calculate the compression achieved in the last loop.
+    compDiff = lastDataLen - dataLen
     # Check to see that the threshold is being met.
     if (dataMatch > 1 and dataLen < lastDataLen) or newLoop == True:
       dictIndexNumber += 1
@@ -313,9 +322,8 @@ def compressData(dictionary, adjusted, done, logging, verbosity, outputFile, dic
       continue
     else:
       # Decrease the dictLengh if results are not forthcoming.
-      if adjusted < 3:
+      if adjusted < 4 and dictLength > 4 and dictLength > 10:
         dictLength = dictLength / 2
-        if dictLength > int(dataLen / 2): dictLength = dictLength / (dictLength / 2)
         message = 'Decreasing the dictLength, currently ' + str(dictLength)
         if logging > 1: writeLog(logFile, message, time, 0, 0)
         if verbosity > 1: printGracefully(logPrefix, message)
@@ -323,9 +331,8 @@ def compressData(dictionary, adjusted, done, logging, verbosity, outputFile, dic
         newLoop = False
         break
       # Increase the dictLengh if results are not forthcoming.
-      if adjusted >= 3 and adjusted < 8:
-        dictLength = dictLength * dictLength
-        if dictLength > int(dataLen / 2): dictLength = dictLength / (dictLength / 2)
+      if adjusted >= 4 and adjusted < 9:
+        dictLength = int(dictLength * 1.5)
         message = 'Increasing the dictLength, currently ' + str(dictLength)
         if logging > 1: writeLog(logFile, message, time, 0, 0)
         if verbosity > 1: printGracefully(logPrefix, message)
@@ -382,8 +389,6 @@ def buildDictionary(forced, logging, verbosity, outputFile, inputFile, dictFile,
             # Fill up the offset buffer.
             data = openFile.read(tempOffset)
             dataLen = lastDataLen = len(data)
-            #origDictLength = dictLength
-            #dictionaryLen = lastDictLen = len(dictionary)
             # Select some data and attempt to compress it.
             # dictLength can only be set before the first loop for this logic.
             # Any changes to dictLength made during this loop DO NOT change this "for."
